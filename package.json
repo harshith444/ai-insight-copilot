@@ -1,0 +1,20 @@
+{
+  "name": "ai-insight-copilot",
+  "version": "1.0.0",
+  "description": "A lightweight AI-style analytics copilot that turns business questions into SQL-style logic, summaries, and recommendations.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "analytics",
+    "data",
+    "sql",
+    "copilot",
+    "dashboard"
+  ],
+  "author": "Harshith Katakam",
+  "license": "MIT"
+}

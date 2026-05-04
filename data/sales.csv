@@ -1,0 +1,17 @@
+date,region,channel,product,revenue,orders,customer_satisfaction
+2026-01-03,West,Online,Analytics Pro,18400,92,4.7
+2026-01-04,East,Partner,Data Studio,12600,55,4.2
+2026-01-05,South,Online,Insight API,9800,44,4.4
+2026-01-06,Midwest,Direct,Analytics Pro,14300,67,4.5
+2026-01-07,West,Direct,Data Studio,16600,74,4.6
+2026-01-08,East,Online,Insight API,21200,101,4.8
+2026-01-09,South,Partner,Analytics Pro,8700,38,4.1
+2026-01-10,Midwest,Online,Data Studio,15400,72,4.3
+2026-01-11,West,Partner,Insight API,19600,88,4.7
+2026-01-12,East,Direct,Analytics Pro,24100,115,4.9
+2026-01-13,South,Online,Data Studio,11750,53,4.2
+2026-01-14,Midwest,Partner,Insight API,10200,46,4.0
+2026-01-15,West,Online,Analytics Pro,28900,133,4.9
+2026-01-16,East,Partner,Data Studio,13900,63,4.3
+2026-01-17,South,Direct,Insight API,22100,96,4.8
+2026-01-18,Midwest,Online,Analytics Pro,17800,81,4.5

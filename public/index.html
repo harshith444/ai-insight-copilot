@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Insight Copilot</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">AI Data Product</p>
+        <h1>AI Insight Copilot</h1>
+        <p class="lede">Ask a business question. Get SQL-style logic, a plain-English answer, and a recommended next move.</p>
+      </section>
+
+      <section class="workspace">
+        <div class="ask-panel">
+          <label for="question">Question</label>
+          <div class="input-row">
+            <input id="question" value="Which region has the highest revenue?" />
+            <button id="ask">Analyze</button>
+          </div>
+          <div class="chips">
+            <button data-q="Give me an executive summary">Summary</button>
+            <button data-q="Which channel is performing best?">Channel</button>
+            <button data-q="Show revenue trend over time">Trend</button>
+            <button data-q="Which product has the most revenue?">Product</button>
+          </div>
+        </div>
+
+        <div class="result-grid">
+          <article>
+            <span>Intent</span>
+            <h2 id="intent">-</h2>
+          </article>
+          <article>
+            <span>Answer</span>
+            <p id="answer">Run an analysis to begin.</p>
+          </article>
+          <article>
+            <span>Recommendation</span>
+            <p id="recommendation">The copilot will suggest the next decision.</p>
+          </article>
+        </div>
+
+        <section class="sql-card">
+          <span>Generated SQL</span>
+          <pre id="sql"></pre>
+        </section>
+
+        <section class="chart-card">
+          <div>
+            <span>Visual</span>
+            <h2 id="chart-title">Revenue by region</h2>
+          </div>
+          <canvas id="chart" width="920" height="320"></canvas>
+        </section>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
