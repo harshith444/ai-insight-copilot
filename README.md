@@ -5,6 +5,16 @@
 
 An offline-first, RAG-grounded analytics copilot that works on local private files by default and can attach to cloud data sources when internet access and credentials are available.
 
+## Documentation
+
+Start here if you want the full human-readable explanation:
+
+- [Full Project Guide](docs/PROJECT_GUIDE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [How To Run](docs/RUNBOOK.md)
+- [Connectors](docs/CONNECTORS.md)
+- [What AI It Uses](docs/AI_EXPLAINED.md)
+
 ## Features
 
 - Works across sales, healthcare, and education sample datasets
