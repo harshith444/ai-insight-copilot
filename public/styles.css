@@ -59,6 +59,7 @@ h1 {
 article,
 .sql-card,
 .context-card,
+.connector-card,
 .chart-card {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -147,6 +148,7 @@ button {
 article,
 .sql-card,
 .context-card,
+.connector-card,
 .chart-card {
   padding: 18px;
 }
@@ -167,6 +169,7 @@ pre {
 }
 
 .context-card,
+.connector-card,
 .chart-card {
   margin-top: 14px;
 }
@@ -193,6 +196,51 @@ pre {
   margin: 0;
 }
 
+.connector-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.connector {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.connector strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.connector small {
+  color: var(--muted);
+  display: block;
+  line-height: 1.5;
+}
+
+.status {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.68rem;
+  font-weight: 900;
+  margin-bottom: 8px;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.ready {
+  background: rgba(16, 185, 129, 0.16);
+  color: #90f3ce;
+}
+
+.not_configured {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fcd28a;
+}
+
 canvas {
   width: 100%;
   max-height: 320px;
@@ -200,7 +248,8 @@ canvas {
 
 @media (max-width: 760px) {
   .input-row,
-  .result-grid {
+  .result-grid,
+  .connector-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -6,6 +6,7 @@ const answer = document.querySelector("#answer");
 const recommendation = document.querySelector("#recommendation");
 const sql = document.querySelector("#sql");
 const context = document.querySelector("#context");
+const connectors = document.querySelector("#connectors");
 const chartTitle = document.querySelector("#chart-title");
 const canvas = document.querySelector("#chart");
 const ctx = canvas.getContext("2d");
@@ -26,11 +27,13 @@ document.querySelectorAll("[data-q]").forEach((button) => {
 });
 
 async function boot() {
-  const response = await fetch("/api/datasets");
-  const body = await response.json();
-  dataset.innerHTML = body.datasets
+  const [datasetResponse, connectorResponse] = await Promise.all([fetch("/api/datasets"), fetch("/api/connectors")]);
+  const datasetBody = await datasetResponse.json();
+  const connectorBody = await connectorResponse.json();
+  dataset.innerHTML = datasetBody.datasets
     .map((item) => `<option value="${item.id}">${item.name} - ${item.rows} rows</option>`)
     .join("");
+  renderConnectors(connectorBody.connectors);
   run(question.value);
 }
 
@@ -54,6 +57,25 @@ function renderContext(items) {
             <div class="context-item">
               <strong>${item.title} <span>score ${item.score}</span></strong>
               <p>${item.text}</p>
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderConnectors(items) {
+  connectors.innerHTML = `
+    <div class="connector-grid">
+      ${items
+        .map(
+          (item) => `
+            <div class="connector">
+              <span class="status ${item.status}">${item.status.replace("_", " ")}</span>
+              <strong>${item.name}</strong>
+              <small>${item.mode} mode</small>
+              <small>${item.description}</small>
             </div>
           `
         )

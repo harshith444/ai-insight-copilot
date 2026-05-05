@@ -3,11 +3,10 @@ import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeQuestion, listDatasets } from "./src/copilot.js";
-import { loadCsv } from "./src/csv.js";
-import { profileDataset } from "./src/profile.js";
+import { listConnectors, loadOfflineDatasets, previewConnector } from "./src/connectors/registry.js";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
-const datasets = loadDatasets();
+const datasets = loadOfflineDatasets(root);
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 3000);
 
@@ -29,6 +28,14 @@ const server = createServer(async (request, response) => {
 
   if (url.pathname === "/api/datasets") {
     return json(response, { datasets: listDatasets(datasets) });
+  }
+
+  if (url.pathname === "/api/connectors") {
+    return json(response, await listConnectors(root));
+  }
+
+  if (url.pathname === "/api/connectors/preview") {
+    return json(response, await previewConnector(url.searchParams.get("id")));
   }
 
   if (url.pathname === "/api/data") {
@@ -54,17 +61,4 @@ server.listen(port, host, () => {
 function json(response, body) {
   response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(body, null, 2));
-}
-
-function loadDatasets() {
-  return Object.fromEntries(
-    [
-      ["sales", "Sales Performance", "sales.csv"],
-      ["health", "Healthcare Operations", "health.csv"],
-      ["education", "Education Programs", "education.csv"]
-    ].map(([id, name, filename]) => {
-      const rows = loadCsv(join(root, "data", filename));
-      return [id, { id, rows, profile: profileDataset(name, rows) }];
-    })
-  );
 }
