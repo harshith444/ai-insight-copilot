@@ -1,5 +1,8 @@
 # AI Insight Copilot
 
+[![Profile](https://img.shields.io/badge/Profile-harshith444-111827?style=for-the-badge&logo=github&logoColor=white)](https://github.com/harshith444)
+[![Repository](https://img.shields.io/badge/Repository-ai--insight--copilot-10B981?style=for-the-badge&logo=github&logoColor=white)](https://github.com/harshith444/ai-insight-copilot)
+
 A lightweight AI-style analytics copilot that turns business questions into SQL-style logic, plain-English summaries, visual breakdowns, and recommended next actions.
 
 ## Features
@@ -34,3 +37,8 @@ npm test
 ## Stack
 
 Node.js, JavaScript, CSV analytics, HTML, CSS, Canvas.
+
+## Links
+
+- Profile README: [github.com/harshith444](https://github.com/harshith444)
+- Companion project: [Data Quality Radar](https://github.com/harshith444/data-quality-radar)
