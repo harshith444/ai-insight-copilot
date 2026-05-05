@@ -1,0 +1,11 @@
+term,program,course,students,enrollment,completion_rate,avg_score
+Spring,Data Science,Python Foundations,93,105,0.89,84
+Spring,Data Science,Machine Learning,71,82,0.86,88
+Spring,Business Analytics,SQL Analytics,116,124,0.94,86
+Summer,Cybersecurity,Network Defense,58,70,0.83,81
+Summer,Data Science,Data Visualization,64,77,0.88,85
+Fall,Business Analytics,Dashboard Design,122,132,0.92,87
+Fall,Cybersecurity,Cloud Security,81,94,0.86,83
+Fall,Data Science,Machine Learning,97,112,0.9,89
+Winter,Business Analytics,SQL Analytics,75,84,0.91,85
+Winter,Cybersecurity,Network Defense,52,61,0.82,80

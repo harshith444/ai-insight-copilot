@@ -1,114 +1,245 @@
-export function analyzeQuestion(question, rows) {
-  const q = question.toLowerCase();
-  const revenue = sum(rows, "revenue");
-  const orders = sum(rows, "orders");
-  const averageOrderValue = revenue / orders;
+import { buildKnowledgeBase, retrieve, tokenize } from "./retriever.js";
 
-  if (q.includes("region")) {
-    const byRegion = groupSum(rows, "region", "revenue");
-    const top = topEntry(byRegion);
-    return response({
-      intent: "Top revenue region",
-      sql: "SELECT region, SUM(revenue) AS revenue FROM sales GROUP BY region ORDER BY revenue DESC;",
-      answer: `${top.key} leads revenue with $${format(top.value)}.`,
-      recommendation: "Prioritize campaign analysis for the leading region, then compare channel mix against underperforming regions.",
-      chart: toChart(byRegion, "Revenue by region")
-    });
-  }
+export function analyzeQuestion(question, dataset) {
+  const docs = buildKnowledgeBase(dataset.profile);
+  const retrieved = retrieve(question, docs, 6);
+  const plan = buildPlan(question, dataset.profile, retrieved);
+  const result = executePlan(plan, dataset.rows);
 
-  if (q.includes("channel")) {
-    const byChannel = groupSum(rows, "channel", "revenue");
-    const top = topEntry(byChannel);
-    return response({
-      intent: "Channel performance",
-      sql: "SELECT channel, SUM(revenue) AS revenue FROM sales GROUP BY channel ORDER BY revenue DESC;",
-      answer: `${top.key} is the strongest channel at $${format(top.value)}.`,
-      recommendation: "Double down on the top channel and inspect satisfaction scores before increasing volume.",
-      chart: toChart(byChannel, "Revenue by channel")
-    });
-  }
-
-  if (q.includes("product")) {
-    const byProduct = groupSum(rows, "product", "revenue");
-    const top = topEntry(byProduct);
-    return response({
-      intent: "Product revenue mix",
-      sql: "SELECT product, SUM(revenue) AS revenue FROM sales GROUP BY product ORDER BY revenue DESC;",
-      answer: `${top.key} is the highest revenue product at $${format(top.value)}.`,
-      recommendation: "Package the top product with the highest satisfaction segment for expansion.",
-      chart: toChart(byProduct, "Revenue by product")
-    });
-  }
-
-  if (q.includes("satisfaction") || q.includes("rating")) {
-    const avg = average(rows.map((row) => row.customer_satisfaction));
-    return response({
-      intent: "Customer satisfaction",
-      sql: "SELECT AVG(customer_satisfaction) AS avg_satisfaction FROM sales;",
-      answer: `Average satisfaction is ${avg.toFixed(2)} out of 5.`,
-      recommendation: avg >= 4.5 ? "Satisfaction is strong; protect quality while scaling." : "Investigate low-scoring segments before scaling acquisition.",
-      chart: toChart(groupAverage(rows, "region", "customer_satisfaction"), "Satisfaction by region")
-    });
-  }
-
-  if (q.includes("trend") || q.includes("daily") || q.includes("over time")) {
-    const byDate = groupSum(rows, "date", "revenue");
-    const entries = Object.entries(byDate);
-    const first = entries[0][1];
-    const last = entries.at(-1)[1];
-    const direction = last >= first ? "up" : "down";
-    return response({
-      intent: "Revenue trend",
-      sql: "SELECT date, SUM(revenue) AS revenue FROM sales GROUP BY date ORDER BY date;",
-      answer: `Revenue is trending ${direction}, moving from $${format(first)} to $${format(last)} across the sample window.`,
-      recommendation: "Compare the final three days against channel and product mix to explain the movement.",
-      chart: toChart(byDate, "Revenue trend")
-    });
-  }
-
-  return response({
-    intent: "Executive summary",
-    sql: "SELECT SUM(revenue) AS revenue, SUM(orders) AS orders, SUM(revenue) / SUM(orders) AS aov FROM sales;",
-    answer: `The dataset contains $${format(revenue)} revenue, ${format(orders)} orders, and a $${averageOrderValue.toFixed(2)} average order value.`,
-    recommendation: "Start with region and channel segmentation to find the clearest growth lever.",
-    chart: toChart(groupSum(rows, "region", "revenue"), "Revenue by region")
-  });
-}
-
-function response(payload) {
   return {
-    ...payload,
+    dataset: dataset.profile.name,
+    intent: plan.intent,
+    answer: result.answer,
+    recommendation: result.recommendation,
+    sql: plan.sql,
+    chart: result.chart,
+    retrievedContext: retrieved.map(({ id, title, text, score }) => ({ id, title, text, score })),
+    plan,
     generatedAt: new Date().toISOString()
   };
 }
 
-function sum(rows, field) {
-  return rows.reduce((total, row) => total + Number(row[field] || 0), 0);
+export function listDatasets(datasets) {
+  return Object.values(datasets).map((dataset) => ({
+    id: dataset.id,
+    name: dataset.profile.name,
+    rows: dataset.profile.rowCount,
+    columns: dataset.profile.columns.map((column) => ({
+      name: column.name,
+      type: column.type,
+      examples: column.examples
+    }))
+  }));
 }
 
-function average(values) {
-  return values.reduce((total, value) => total + Number(value || 0), 0) / values.length;
+function buildPlan(question, profile, retrieved) {
+  const q = question.toLowerCase();
+  const tokens = new Set(tokenize(question));
+  const metric = selectMetric(profile, tokens, retrieved);
+  const dimension = selectDimension(profile, tokens, retrieved, metric);
+  const dateColumn = selectDate(profile, tokens, retrieved);
+  const wantsTrend = includesAny(q, ["trend", "over time", "daily", "weekly", "timeline", "change"]);
+  const wantsAverage = includesAny(q, ["average", "avg", "mean"]);
+  const wantsCount = includesAny(q, ["count", "how many", "volume", "number of"]);
+  const wantsHighest = includesAny(q, ["highest", "top", "best", "most", "maximum"]) || tokens.has("max");
+  const wantsLowest = includesAny(q, ["lowest", "least", "minimum", "worst"]) || tokens.has("min");
+  const wantsCompare = includesAny(q, ["compare", "by", "across", "breakdown", "group"]);
+  const wantsSummary = includesAny(q, ["summary", "overview", "what is in", "describe", "about this dataset"]);
+
+  if (wantsSummary) {
+    return summaryPlan(profile);
+  }
+
+  if (wantsTrend && dateColumn && metric) {
+    return trendPlan(profile.name, dateColumn.name, metric.name, wantsAverage ? "AVG" : "SUM");
+  }
+
+  if ((wantsHighest || wantsLowest || wantsCompare || dimension) && dimension && metric) {
+    const aggregation = wantsAverage ? "AVG" : wantsCount ? "COUNT" : "SUM";
+    const sort = wantsLowest ? "ASC" : "DESC";
+    return groupedPlan(profile.name, dimension.name, metric.name, aggregation, sort);
+  }
+
+  if (metric) {
+    const aggregation = wantsAverage ? "AVG" : wantsCount ? "COUNT" : "SUM";
+    return metricPlan(profile.name, metric.name, aggregation);
+  }
+
+  if (dimension) {
+    return distributionPlan(profile.name, dimension.name);
+  }
+
+  return summaryPlan(profile);
 }
 
-function groupSum(rows, key, field) {
-  return rows.reduce((groups, row) => {
-    groups[row[key]] = (groups[row[key]] || 0) + Number(row[field] || 0);
-    return groups;
+function executePlan(plan, rows) {
+  if (plan.type === "grouped") {
+    const grouped = groupAggregate(rows, plan.dimension, plan.metric, plan.aggregation);
+    const sorted = Object.entries(grouped).sort((a, b) => (plan.sort === "ASC" ? a[1] - b[1] : b[1] - a[1]));
+    const [leader, value] = sorted[0];
+    return {
+      answer: `${leader} is the leading ${plan.dimension} for ${plan.aggregation.toLowerCase()}(${plan.metric}) at ${format(value)}.`,
+      recommendation: `Compare the top and bottom ${plan.dimension} groups to understand what is driving the gap.`,
+      chart: toChart(Object.fromEntries(sorted.slice(0, 10)), `${plan.metric} by ${plan.dimension}`)
+    };
+  }
+
+  if (plan.type === "trend") {
+    const grouped = groupAggregate(rows, plan.dateColumn, plan.metric, plan.aggregation);
+    const sorted = Object.fromEntries(Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)));
+    const values = Object.values(sorted);
+    const first = values[0];
+    const last = values.at(-1);
+    const direction = last >= first ? "up" : "down";
+    return {
+      answer: `${plan.metric} is trending ${direction}, moving from ${format(first)} to ${format(last)} over the available timeline.`,
+      recommendation: `Segment the trend by a categorical column to find what explains the ${direction} movement.`,
+      chart: toChart(sorted, `${plan.metric} trend`)
+    };
+  }
+
+  if (plan.type === "metric") {
+    const value = aggregate(rows, plan.metric, plan.aggregation);
+    return {
+      answer: `${plan.aggregation.toLowerCase()}(${plan.metric}) is ${format(value)} across ${rows.length} records.`,
+      recommendation: "Ask for a breakdown by a category column to make this metric more actionable.",
+      chart: toChart({ [plan.metric]: value }, `${plan.aggregation} ${plan.metric}`)
+    };
+  }
+
+  if (plan.type === "distribution") {
+    const counts = groupCount(rows, plan.dimension);
+    const sorted = Object.fromEntries(Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10));
+    return {
+      answer: `${plan.dimension} has ${Object.keys(counts).length} groups. The largest group is ${Object.entries(sorted)[0][0]}.`,
+      recommendation: "Pair this distribution with a numeric metric for performance comparison.",
+      chart: toChart(sorted, `${plan.dimension} distribution`)
+    };
+  }
+
+  const numeric = plan.profile.numericColumns.map((column) => `${column.name}: ${format(column.stats.sum)}`).join(", ");
+  return {
+    answer: `${plan.profile.name} has ${plan.profile.rowCount} rows and ${plan.profile.columns.length} columns. Numeric signals include ${numeric || "none"}.`,
+    recommendation: "Ask about a metric, category, trend, average, top group, or distribution.",
+    chart: toChart(
+      Object.fromEntries(plan.profile.numericColumns.slice(0, 8).map((column) => [column.name, column.stats.sum])),
+      "Numeric column totals"
+    )
+  };
+}
+
+function selectMetric(profile, tokens, retrieved) {
+  const numeric = rankColumns(profile.numericColumns, tokens, retrieved);
+  return numeric[0] || profile.numericColumns[0];
+}
+
+function selectDimension(profile, tokens, retrieved, metric) {
+  const categorical = rankColumns(profile.categoricalColumns, tokens, retrieved).filter((column) => column.name !== metric?.name);
+  return categorical[0] || null;
+}
+
+function selectDate(profile, tokens, retrieved) {
+  const dates = rankColumns(profile.dateColumns, tokens, retrieved);
+  return dates[0] || profile.dateColumns[0] || null;
+}
+
+function rankColumns(columns, tokens, retrieved) {
+  return [...columns]
+    .map((column) => ({
+      column,
+      score:
+        columnScore(column, tokens) +
+        retrieved.filter((doc) => doc.column === column.name).reduce((total, doc) => total + doc.score, 0)
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.column);
+}
+
+function columnScore(column, tokens) {
+  const columnTokens = tokenize(`${column.name} ${column.examples.join(" ")}`);
+  return columnTokens.reduce((score, token) => score + (tokens.has(token) ? 3 : 0), 0);
+}
+
+function groupedPlan(dataset, dimension, metric, aggregation, sort) {
+  return {
+    type: "grouped",
+    intent: `${aggregation} ${metric} by ${dimension}`,
+    dataset,
+    dimension,
+    metric,
+    aggregation,
+    sort,
+    sql: `SELECT ${dimension}, ${aggregation}(${metric}) AS value FROM ${tableName(dataset)} GROUP BY ${dimension} ORDER BY value ${sort};`
+  };
+}
+
+function trendPlan(dataset, dateColumn, metric, aggregation) {
+  return {
+    type: "trend",
+    intent: `${metric} trend over ${dateColumn}`,
+    dataset,
+    dateColumn,
+    metric,
+    aggregation,
+    sql: `SELECT ${dateColumn}, ${aggregation}(${metric}) AS value FROM ${tableName(dataset)} GROUP BY ${dateColumn} ORDER BY ${dateColumn};`
+  };
+}
+
+function metricPlan(dataset, metric, aggregation) {
+  return {
+    type: "metric",
+    intent: `${aggregation} ${metric}`,
+    dataset,
+    metric,
+    aggregation,
+    sql: `SELECT ${aggregation}(${metric}) AS value FROM ${tableName(dataset)};`
+  };
+}
+
+function distributionPlan(dataset, dimension) {
+  return {
+    type: "distribution",
+    intent: `${dimension} distribution`,
+    dataset,
+    dimension,
+    sql: `SELECT ${dimension}, COUNT(*) AS records FROM ${tableName(dataset)} GROUP BY ${dimension} ORDER BY records DESC;`
+  };
+}
+
+function summaryPlan(profile) {
+  return {
+    type: "summary",
+    intent: "Dataset summary",
+    profile,
+    sql: `SELECT COUNT(*) AS rows FROM ${tableName(profile.name)};`
+  };
+}
+
+function groupAggregate(rows, dimension, metric, aggregation) {
+  const groups = rows.reduce((acc, row) => {
+    acc[row[dimension]] ||= [];
+    acc[row[dimension]].push(Number(row[metric] || 0));
+    return acc;
+  }, {});
+  return Object.fromEntries(Object.entries(groups).map(([key, values]) => [key, aggregateValues(values, aggregation)]));
+}
+
+function groupCount(rows, dimension) {
+  return rows.reduce((acc, row) => {
+    acc[row[dimension]] = (acc[row[dimension]] || 0) + 1;
+    return acc;
   }, {});
 }
 
-function groupAverage(rows, key, field) {
-  const grouped = rows.reduce((groups, row) => {
-    groups[row[key]] ||= [];
-    groups[row[key]].push(Number(row[field] || 0));
-    return groups;
-  }, {});
-  return Object.fromEntries(Object.entries(grouped).map(([name, values]) => [name, average(values)]));
+function aggregate(rows, metric, aggregation) {
+  return aggregateValues(rows.map((row) => Number(row[metric] || 0)), aggregation);
 }
 
-function topEntry(grouped) {
-  const [key, value] = Object.entries(grouped).sort((a, b) => b[1] - a[1])[0];
-  return { key, value };
+function aggregateValues(values, aggregation) {
+  if (aggregation === "AVG") return values.reduce((sum, value) => sum + value, 0) / values.length;
+  if (aggregation === "COUNT") return values.length;
+  return values.reduce((sum, value) => sum + value, 0);
 }
 
 function toChart(grouped, title) {
@@ -119,6 +250,14 @@ function toChart(grouped, title) {
   };
 }
 
+function includesAny(text, phrases) {
+  return phrases.some((phrase) => text.includes(phrase));
+}
+
+function tableName(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+}
+
 function format(value) {
-  return Math.round(value).toLocaleString("en-US");
+  return Number(value).toLocaleString("en-US", { maximumFractionDigits: 2 });
 }

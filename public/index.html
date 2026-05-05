@@ -9,23 +9,26 @@
   <body>
     <main class="shell">
       <section class="hero">
-        <p class="eyebrow">AI Data Product</p>
+        <p class="eyebrow">RAG-Grounded Data Product</p>
         <h1>AI Insight Copilot</h1>
-        <p class="lede">Ask a business question. Get SQL-style logic, a plain-English answer, and a recommended next move.</p>
+        <p class="lede">Ask questions across different datasets. The copilot retrieves schema context, builds an analysis plan, executes it, and explains the result.</p>
       </section>
 
       <section class="workspace">
         <div class="ask-panel">
+          <label for="dataset">Dataset</label>
+          <select id="dataset"></select>
+
           <label for="question">Question</label>
           <div class="input-row">
             <input id="question" value="Which region has the highest revenue?" />
             <button id="ask">Analyze</button>
           </div>
           <div class="chips">
-            <button data-q="Give me an executive summary">Summary</button>
-            <button data-q="Which channel is performing best?">Channel</button>
-            <button data-q="Show revenue trend over time">Trend</button>
-            <button data-q="Which product has the most revenue?">Product</button>
+            <button data-dataset="sales" data-q="Which region has the highest revenue?">Sales</button>
+            <button data-dataset="health" data-q="Which clinic has the highest average wait minutes?">Healthcare</button>
+            <button data-dataset="education" data-q="Which program has the highest completion rate?">Education</button>
+            <button data-q="Show the main trend over time">Trend</button>
           </div>
         </div>
 
@@ -45,8 +48,13 @@
         </div>
 
         <section class="sql-card">
-          <span>Generated SQL</span>
+          <span>Generated Analysis Query</span>
           <pre id="sql"></pre>
+        </section>
+
+        <section class="context-card">
+          <span>Retrieved Context</span>
+          <div id="context"></div>
         </section>
 
         <section class="chart-card">

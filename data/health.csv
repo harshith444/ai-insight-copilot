@@ -1,0 +1,11 @@
+date,clinic,department,patients,avg_wait_minutes,satisfaction_score,readmission_rate
+2026-01-01,Northside,Cardiology,74,31,4.4,0.08
+2026-01-02,Northside,Primary Care,126,24,4.6,0.03
+2026-01-03,Westview,Orthopedics,58,42,4.1,0.05
+2026-01-04,Westview,Primary Care,141,28,4.5,0.04
+2026-01-05,Central,Cardiology,88,36,4.2,0.09
+2026-01-06,Central,Emergency,211,54,3.8,0.11
+2026-01-07,Northside,Emergency,189,49,3.9,0.1
+2026-01-08,Westview,Cardiology,67,33,4.3,0.07
+2026-01-09,Central,Primary Care,153,22,4.7,0.03
+2026-01-10,Northside,Orthopedics,62,38,4.2,0.05

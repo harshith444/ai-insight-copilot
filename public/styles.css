@@ -58,6 +58,7 @@ h1 {
 .workspace,
 article,
 .sql-card,
+.context-card,
 .chart-card {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -81,6 +82,18 @@ label {
   color: var(--muted);
   font-weight: 700;
   margin-bottom: 10px;
+}
+
+select {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: #0b1220;
+  color: var(--text);
+  font: inherit;
+  margin-bottom: 16px;
+  outline: 1px solid var(--line);
+  padding: 14px 16px;
 }
 
 .input-row {
@@ -133,6 +146,7 @@ button {
 
 article,
 .sql-card,
+.context-card,
 .chart-card {
   padding: 18px;
 }
@@ -152,8 +166,31 @@ pre {
   color: #d8ffe9;
 }
 
+.context-card,
 .chart-card {
   margin-top: 14px;
+}
+
+.context-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.context-item {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.context-item strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.context-item p {
+  margin: 0;
 }
 
 canvas {
